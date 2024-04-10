@@ -2,6 +2,7 @@ package championsclub.antsproject.controller;
 
 import championsclub.antsproject.data.domain.User;
 import championsclub.antsproject.data.repository.UserRepo;
+import championsclub.antsproject.environment.EnvironmentService;
 import championsclub.antsproject.model.LoginRequest;
 import championsclub.antsproject.model.LoginResponse;
 import championsclub.antsproject.model.RegisterRequest;
@@ -24,8 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class Auth {
-    private final Dotenv env = Dotenv.load();
-    private final String salt = env.get("ANTS_SECURITY_HASH_SALT");
+    private final EnvironmentService env;
     private final Jwt jwt;
 
     @Autowired
@@ -35,7 +35,7 @@ public class Auth {
     public LoginResponse login(@RequestBody @Validated LoginRequest request){
 
         User user = userRepo.findByUsername(request.getUsername());
-        if (user == null || !user.getPassword().equals(BCrypt.hashpw(request.getPassword(), salt)))
+        if (user == null || !user.getPassword().equals(BCrypt.hashpw(request.getPassword(), env.get("ANTS_SECURITY_HASH_SALT"))))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         return LoginResponse.builder()
@@ -54,7 +54,7 @@ public class Auth {
 
         User user = new User(
                 request.getUsername(),
-                BCrypt.hashpw(request.getPassword(), salt)
+                BCrypt.hashpw(request.getPassword(), env.get("ANTS_SECURITY_HASH_SALT"))
         );
 
         userRepo.save(user);
