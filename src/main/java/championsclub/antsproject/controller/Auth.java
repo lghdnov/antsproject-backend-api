@@ -25,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class Auth {
     private final Dotenv env = Dotenv.load();
-
+    private final String salt = env.get("ANTS_SECURITY_HASH_SALT");
     private final Jwt jwt;
 
     @Autowired
@@ -34,11 +34,8 @@ public class Auth {
     @PostMapping("/login")
     public LoginResponse login(@RequestBody @Validated LoginRequest request){
 
-        String salit = env.get("ANTS_SECURITY_HASH_SALT");
-        String hash = BCrypt.hashpw(request.getPassword(), salit);
-        String hash1 = BCrypt.hashpw(request.getPassword(), salit);
         User user = userRepo.findByUsername(request.getUsername());
-        if (user == null || !user.getPassword().equals(hash))
+        if (user == null || !user.getPassword().equals(BCrypt.hashpw(request.getPassword(), salt)))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         return LoginResponse.builder()
@@ -55,12 +52,9 @@ public class Auth {
         if (userRepo.existsByUsername(request.getUsername()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        String salit = env.get("ANTS_SECURITY_HASH_SALT");
-        String hashedPassword = BCrypt.hashpw(request.getPassword(), salit);
-
         User user = new User(
                 request.getUsername(),
-                hashedPassword
+                BCrypt.hashpw(request.getPassword(), salt)
         );
 
         userRepo.save(user);
